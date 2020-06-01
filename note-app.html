@@ -1,0 +1,443 @@
+<html>
+    <head>
+        <title>Harry Go</title>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+        <style type="text/css">
+            /* Add your css styles here */
+            .note {
+                /*position: absolute;*/
+                margin: 10px;
+                border: 1px solid gray;
+                display: inline-block;
+                cursor: move;
+                z-index: 0;
+            }
+            
+            .note textarea {
+                width: 200px;
+                height: 150px;
+                border: 1px solid gray;
+            }
+            
+            .note .close {
+                width: 18px;
+                height: 18px;
+                float: left;
+                vertical-align: middle;
+                text-align: center;
+                cursor: default;
+            }
+            
+            .note .close:hover {
+                border: 1px solid black;
+            }
+            
+            .note .color {
+                width: 18px;
+                height: 18px;
+                float: right;
+                border: 1px solid gray;
+                cursor: default;
+            }
+            
+            .note .msg {
+                padding-left: 18px;
+                left: 10px;
+                padding-top: 0px;
+                padding-bottom: 0px;
+                float: left;
+                font-size: 10px;
+                font-style: italic;
+                color: gray;
+                vertical-align: bottom;
+                text-align: center;
+            }
+            
+            .note .color:hover {
+                border: 1px solid black;
+            }
+            
+            .note-add {
+                /*position: absolute;*/
+                font-size: 50px;
+                margin: 10px;
+                width: 50px;
+                height: 50px;
+                cursor: pointer;
+                z-index: 99;
+            }
+            
+            .note-add:hover {
+                font-weight: bold;
+            }
+            
+            .readme {
+                width: 100%;
+            }
+            .readme p {
+                margin: 10px;
+                font-size: 15px;
+            }
+            
+        </style>
+        <!-- Enter your HTML code here -->
+    </head>
+    <body>
+        <div class="readme">
+            <span onclick="$('#readme-cntxt').toggle('slow')" style="cursor: default;">
+                <b>Simple Note App</b> (<u>click to show/hide detail</u>) is a online Note taking app built with Vue.js + jQuery + firebase.
+                Data is synchronized with Google firebase powered restful database in real time.
+                <u>Click this sentence to hide description for more space</u>.
+            </span>
+            <p id="readme-cntxt">
+                This app is to practise frontend tech such as JS, html and restful.
+                It implements features such as add/delete/update a note, change color, resize/reposition/z-index, realtime data syncing and ect.<br/>
+                1) On load the page, existing data will be retrieved from firebase DB and note will be displayed on screen in grid layout.
+                Inline-block mode is used as it works well on different device and screen size mode, hence note size and position is note saved in online db.
+                The status on header of a note will change to "Updated" after it is loaded from firebase db.<br/>
+                2) Open another (or more) browser and load the same url, observe notes rendering in both browsers.
+                Syncing mode can be switched-off by setting data.config.use_firebase = false.<br/>
+                3) Click "+" button to add a note. New added note will be uploaded to firebase db too, rendering in other browsers shall be updated too.
+                When syncing to db is done, the note status will changed to "Saved"<br/>
+                2) Click "X" on a note will delete it. Note deleting is synced with firebase db.<br/>
+                3) Click one of three color button on the up-right of a note will change its color. Color is synced with firebase db.<br/>
+                4) Type inside a note to edit its content. Note status changes to "Typing..." while editing. Content will be synced to firebase every 1 sec.
+                As content of a note grows, its height grows automatically to to fit text.
+                A confirm message will be displayed if users attempt to close/reload browser when any note is still syncing with online DB.
+                Since size is not shared, note rendered in other browser will appear a scrollbar.<br/>
+                5) A note can be resized by dragging the bottom-right corner of a note.
+                However, note resizing in inline-block mode would have a negative impression of the overall layout, thus a better layout design for multi-devices is needed.<br/>
+                6) A note can be moved by dragging its header. If two notes overlaps, click one will bring it to the front.
+                This is done by jQuery draggable() function. More browser compatability testing is needed to ensure using jquery with Vue.js is safe.<br>
+                7) Resizing and reposition is not synced with online DB, because it will cause layout issues.
+                Hence a better note layout design is needed, such a layout should fit most devices and different screen size.
+                Problem like how to display notes layout made from a large screen into mobile screen.<br/>
+                8) Reload the browser, all changes, except size/position, should be saved and reloaded.<br/>
+                9) This html app has been tested on Mac chrome, firefox, safari. Windows Edge, IE. Samsung Note 10.
+                Version ignored, more browser compatability testing is needed for productoin usage.<br/>
+            </p>
+            <hr/>
+        </div>
+        
+        <div id="note-app">
+            <div
+                v-bind:title="config.btn_add_hint"
+                v-html="config.btn_add" 
+                class="note-add" 
+                v-on:click="noteAdd" >
+            </div>
+            
+            <note
+                v-for="(note, index) in notes" 
+                v-bind:note="note"
+                v-bind:key="note.id"
+                v-bind:config="config">
+            </note>
+        </div>
+    
+        <script
+            src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"
+            integrity="sha256-9/aliU8dGd2tb6OSsuzixeV4y/faTqgFtohetphbbj0="
+            crossorigin="anonymous">
+        </script>
+        <script
+            src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"
+            integrity="sha256-KM512VNnjElC30ehFwehXjx1YCHPiQkOPmqnrWtpccM="
+            crossorigin="anonymous">
+        </script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.15/lodash.min.js" 
+            integrity="sha256-VeNaFBVDhoX3H+gJ37DpT/nTuZTdjYro9yBruHjVmoQ="
+            crossorigin="anonymous">
+        </script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.6.11/vue.min.js"
+            integrity="sha256-ngFW3UnAN0Tnm76mDuu7uUtYEcG3G5H1+zioJw3t+68="
+            crossorigin="anonymous">
+        </script>
+        <script src="https://www.gstatic.com/firebasejs/7.14.6/firebase-app.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/7.14.6/firebase-database.js"></script>
+
+        <script type="text/javascript">
+            var debug;
+            
+            var data = {
+                notes: [],
+                config: {
+                    btn_x: '&#10005',
+                    btn_x_hint: 'Click to delete this note',
+                    btn_add: '+',
+                    btn_add_hint: 'Click to add a new note',
+                    btn_color_hint: 'Click to change color',
+                    color: {
+                        green: '#D0F0C0',
+                        yellow: '#FFFDD0',
+                        red: '#FFC0CB'
+                    },
+                    use_firebase: true
+                },
+                firebaseConfig: {
+                    apiKey: "AIzaSyDTzz6E82YEgkhISMNvZ64szj7APbrjdxo",
+                    authDomain: "note-app-demo2.firebaseapp.com",
+                    databaseURL: "https://note-app-demo2.firebaseio.com",
+                    projectId: "note-app-demo2",
+                    storageBucket: "note-app-demo2.appspot.com",
+                    messagingSenderId: "330587114714",
+                    appId: "1:330587114714:web:0f8ceb5ac77496ec1be9e3"
+                }
+            };
+
+            // Initialize Firebase
+            if (data.config.use_firebase === true && firebase.apps.length === 0) {
+                firebase.initializeApp(data.firebaseConfig);
+            }
+
+            if (firebase.apps.length > 0) {
+                //firebase.database().ref().once('value', function(root) {
+                firebase.database().ref().on('value', function(root) {
+                    //Sync deletion
+                    for(let i=0; i<data.notes.length; i++) {
+                        //Inefficient implemention, just a quick demo for fun.
+                        let _notFound = true;
+                        for(let j=0; j<root.length; j++) {
+                            if (data.notes[i].id === root[j].id) {
+                                _notFound = false;
+                                break;
+                            }
+                        }
+                        
+                        if (_notFound) {
+                            data.notes.splice(i, 1);
+                            i--; // array length-1 as one was removed.
+                        }
+                    }
+                    
+                    root.forEach(function(sub) {
+                        let key = sub.key;
+                        let val = sub.val();
+                        let note = sub.val();
+                        
+                        note.msg = 'Updated';
+
+                        //check exist of a note
+                        let _isNew = true;
+                        for (let i=0; i<data.notes.length; i++) {
+                            if (data.notes[i].id === sub.key) {
+                                _isNew = false;
+
+                                if (data.notes[i].text !== note.text) {
+                                    data.notes[i].text = note.text;
+                                    data.notes[i].msg = note.msg;
+                                }
+                                break;
+                            }
+                        }
+                        
+                        if (_isNew) {
+                            data.notes.push(note);
+                        }
+                    });
+                });
+            }
+            
+            //msg won't update immediately
+            Vue.component('note-msg', {
+                props: ['msg', 'config'],
+                data: function() { return {}; },
+                template: ' <div class="msg">{{msg}}</div>',
+            });
+            
+            Vue.component('note-color', {
+                props: ['color', 'config'],
+                data: function() { return {}; },
+                template: ' <div class="color"\
+                                v-bind:title="config.btn_color_hint"\
+                                v-bind:style="{backgroundColor: color}"\
+                                v-on:click="changeColor">\
+                            </div>',
+                methods: {
+                    changeColor: function(ev) {
+                        let el = ev.currentTarget;
+                        let pl = el.parentElement.parentElement;
+                        
+                        for (let i=0; i<data.notes.length; i++) {
+                            if (data.notes[i].id == pl.id) {
+                                data.notes[i].color = el.style.backgroundColor;
+                                
+                                if (firebase.apps.length > 0) {
+                                    let _id = pl.id;
+                                    let _color = el.style.backgroundColor;
+
+                                    let note = {id: _id, color: _color};
+                                    firebase.database().ref(_id).update(note);
+                                }
+                                
+                                break;
+                            }
+                        }
+                    }
+                }
+            });
+
+            Vue.component('note', {
+                props: ['note', 'config'],
+                data: function() {
+                    return {};
+                },
+                template: '\
+                    <div class="note"\
+                         v-on:click="noteClick"\
+                         v-bind:id="note.id"\
+                         v-bind:style="{backgroundColor: note.color}">\
+                        <div v-bind:title="config.btn_x_hint"\
+                             class="close"\
+                             v-html="config.btn_x"\
+                             v-on:click="noteDel">\
+                        </div>\
+                        <note-msg v-bind:msg="note.msg" v-bind:config="config"></note-msg>\
+                        <div><note-color v-for="c in config.color" v-bind:color="c" v-bind:config="config"></note-color></div>\
+                        <textarea draggable="false" v-model="note.text" v-bind:style="{backgroundColor: note.color}"></textarea>\
+                    </div>\
+                ',
+                methods: {
+                    noteClick: function(ev) {
+                        //mix jquery code
+                        for (let i=0; i<data.notes.length; i++) {
+                            let _id = this.$el.id;
+                            let idx = 0;
+                            
+                            if (data.notes[i].id == _id) {
+                                idx = 1;
+                            }
+                            
+                            $("#" + data.notes[i].id).css('zIndex', idx);
+                        }
+                    },
+                    
+                    noteDel: function(ev) {
+                        let elId = ev.currentTarget.parentElement.id;
+                        
+                        for (let i=0; i<data.notes.length; i++) {
+                            if (data.notes[i].id == elId) {
+                                data.notes.splice(i, 1);
+                                
+                                if (firebase.apps.length > 0) {
+                                    firebase.database().ref(elId).off();
+                                    firebase.database().ref(elId).remove();
+                                }
+                                
+                                //Just remove one element, save to break;
+                                break;
+                            }
+                        }
+                    },
+                    
+                    syncDB: function() {
+                        if (typeof this.$el !== 'undefined') {
+                            if (firebase.apps.length > 0) {
+                                let _id = this.$el.id;
+                                let _text = this.$el.getElementsByTagName('textarea')[0].value;
+                                
+                                let note = {id: _id, text: _text};
+                                firebase.database().ref(_id).update(note);
+                                
+                                for (let i=0; i<data.notes.length; i++) {
+                                    if (data.notes[i].id == _id) {
+                                        data.notes[i].msg = 'Saved';
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                
+                watch: {
+                    "note.text": function(newText, oldText, u) {
+                        //resize textarea height
+                        let elTxt = this.$el.getElementsByTagName('textarea')[0];
+                        elTxt.style.height = elTxt.scrollHeight + 2;
+                        
+                        //update status msg
+                        if (firebase.apps.length > 0) {
+                            let _id = this.$el.id;
+                            for (let i=0; i<data.notes.length; i++) {
+                                if (data.notes[i].id == _id) {
+                                    data.notes[i].msg = 'Typing...';
+                                    break;
+                                }
+                            }
+                        }
+                        
+                        this.debouncedSyncDB();
+                    }
+                },
+                
+                created: function() {
+                    this.debouncedSyncDB = _.debounce(this.syncDB, 1000)
+                },
+                
+                mounted: function() {
+                    if (typeof this.$el !== 'undefined') {
+                        //mix jquery code
+                        if (false) {
+                            let it = $("#" + this.$el.id);
+                            let cnt = $(".note").length-1;
+                            let col = Math.floor( $(document).width()*0.8/it.width() );
+
+                            let x = Math.floor(cnt%col) * (it.width() + 30) + 20;
+                            let y = Math.floor(cnt/col) * (it.height() + 30) + 60;
+
+                            it.css('left', x+'px');
+                            it.css('top', y+'px');
+                        }
+                        
+                        $("#" + this.$el.id).draggable({
+                            drag: function() {
+                                let offset = $(this).offset();
+                                let x = offset.left;
+                                let y = offset.top;
+                            }
+                        });
+                    }
+                },
+            });
+
+            var app = new Vue({
+                el: '#note-app',
+                data: data,
+                methods: {
+                    noteAdd: function(ev) {
+                        let note = {
+                            id: Date.now().toString(),
+                            text: '',
+                            msg: '',
+                            color: data.config.color.green
+                        };
+                        
+                        data.notes.push(note);
+                        
+                        if (firebase.apps.length > 0) {
+                            firebase.database().ref(note.id).set(note);
+                        }
+                    }
+                },
+                created: function() {
+                    
+                    window.addEventListener('beforeunload', function(ev){
+                        let _unsaved = false;
+                        for (let i=0; i<data.notes.length; i++) {
+                            if (data.notes[i].msg === 'Typing...') {
+                                _unsaved = true;
+                                break;
+                            }
+                        }
+                        
+                        if (_unsaved) {
+                            ev.preventDefault();
+                            ev.returnValue = 'Changes has not been saved, confirm to leave?';
+                        }
+                    });
+                }
+            });
+        </script>
+    </body>
+</html>
